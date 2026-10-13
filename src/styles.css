@@ -877,6 +877,8 @@ kbd {
 }
 
 .credit {
+  display: block;
+  margin-top: 6px;
   white-space: nowrap;
 }
 
