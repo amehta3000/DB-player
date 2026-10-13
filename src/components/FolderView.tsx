@@ -4,6 +4,50 @@ import { formatBytes, formatDate, formatTime, trackTitle } from '../lib/format';
 import { Cover } from './Cover';
 import { CheckIcon, ChevronIcon, ExternalIcon, FolderIcon, LinkIcon, PauseIcon, PlayIcon, ResumeIcon, SearchIcon, ShuffleIcon } from './Icons';
 
+type SortKey = 'name' | 'modified' | 'size';
+interface Sort {
+  key: SortKey;
+  dir: 1 | -1;
+}
+
+const SORT_KEY = 'dbp.sort';
+// First click on a column: names A→Z, but newest and biggest first.
+const DEFAULT_DIR: Record<SortKey, 1 | -1> = { name: 1, modified: -1, size: -1 };
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+function readSort(): Sort {
+  try {
+    const s = JSON.parse(localStorage.getItem(SORT_KEY) ?? 'null');
+    if (s && ['name', 'modified', 'size'].includes(s.key) && (s.dir === 1 || s.dir === -1)) return s;
+  } catch {
+    /* ignore */
+  }
+  return { key: 'name', dir: 1 };
+}
+
+function compareTracks(a: Track, b: Track, { key, dir }: Sort): number {
+  if (key !== 'name') {
+    const av = key === 'size' ? a.size : a.modified;
+    const bv = key === 'size' ? b.size : b.modified;
+    // Missing values always sink to the bottom, whichever direction.
+    if (av == null || bv == null) return av == null ? (bv == null ? 0 : 1) : -1;
+    if (av !== bv) return (av < bv ? -1 : 1) * dir;
+  }
+  return collator.compare(a.name, b.name) * (key === 'name' ? dir : 1);
+}
+
+function SortButton({ k, label, sort, onSort, className }: { k: SortKey; label: string; sort: Sort; onSort(k: SortKey): void; className: string }) {
+  const active = sort.key === k;
+  return (
+    <span className={className} role="columnheader" aria-sort={active ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
+      <button className={`sort-btn${active ? ' on' : ''}`} onClick={() => onSort(k)} title={`Sort by ${label.toLowerCase()}`}>
+        {label}
+        <ChevronIcon size={13} className="sort-arrow" style={{ transform: `rotate(${active && sort.dir === 1 ? -90 : 90}deg)` }} />
+      </button>
+    </span>
+  );
+}
+
 export interface Resume {
   track: Track;
   time: number;
@@ -114,12 +158,27 @@ export const FolderView = memo(function FolderView(props: Props) {
   const { listing, loading, error, path, dropboxUrl, currentId, playing, resume } = props;
   const [query, setQuery] = useState('');
   const [copied, setCopied] = useState(false);
+  const [sort, setSort] = useState(readSort);
 
+  const onSort = (key: SortKey) => {
+    const next: Sort = { key, dir: sort.key === key ? (-sort.dir as 1 | -1) : DEFAULT_DIR[key] };
+    setSort(next);
+    try {
+      localStorage.setItem(SORT_KEY, JSON.stringify(next));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // Folders stay on top (by name); tracks follow the chosen sort, which is also the play order.
   const entries = useMemo(() => {
     const q = query.trim().toLowerCase();
     const all = listing?.entries ?? [];
-    return q ? all.filter((e) => e.name.toLowerCase().includes(q)) : all;
-  }, [listing, query]);
+    const shown = q ? all.filter((e) => e.name.toLowerCase().includes(q)) : all;
+    const dirs = shown.filter((e) => e.kind === 'folder');
+    const files = shown.filter((e): e is Track => e.kind === 'track').sort((a, b) => compareTracks(a, b, sort));
+    return [...dirs, ...files];
+  }, [listing, query, sort]);
   const tracks = useMemo(() => entries.filter((e): e is Track => e.kind === 'track'), [entries]);
   const folders = entries.length - tracks.length;
   const totalSize = tracks.reduce((s, t) => s + (t.size ?? 0), 0);
@@ -209,10 +268,12 @@ export const FolderView = memo(function FolderView(props: Props) {
             <SearchIcon size={18} />
             <input type="search" placeholder="Filter tracks" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Filter tracks" />
           </label>
-          <div className="list-cols" aria-hidden="true">
-            <span>Modified</span>
-            <span>Size</span>
-          </div>
+        </div>
+        <div className="list-head" role="row">
+          <span className="col-n" aria-hidden="true">#</span>
+          <SortButton k="name" label="Name" sort={sort} onSort={onSort} className="col-name" />
+          <SortButton k="modified" label="Modified" sort={sort} onSort={onSort} className="col-date" />
+          <SortButton k="size" label="Size" sort={sort} onSort={onSort} className="col-size" />
         </div>
         {loading && !listing ? (
           <ul className="rows">

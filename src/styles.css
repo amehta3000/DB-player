@@ -633,12 +633,7 @@ kbd {
 }
 
 .list-tools {
-  display: grid;
-  grid-template-columns: 1fr 120px 90px;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px 10px 10px;
-  border-bottom: 1px solid var(--line);
+  padding: 10px 10px 6px;
 }
 
 .search {
@@ -665,15 +660,62 @@ kbd {
   font-size: 14px;
 }
 
-.list-cols {
-  display: contents;
+.list-head {
+  display: grid;
+  grid-template-columns: 44px 1fr 120px 90px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px 6px 10px;
+  border-bottom: 1px solid var(--line);
   color: var(--muted);
   font-size: 12px;
   font-weight: 500;
 }
 
-.list-cols span:last-child {
-  text-align: right;
+.list-head .col-n,
+.list-head .col-date,
+.list-head .col-size {
+  font-size: 12px;
+}
+
+.list-head .col-size {
+  justify-content: flex-end;
+}
+
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: -6px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.list-head .col-size .sort-btn {
+  margin: 0 -6px 0 0;
+}
+
+.sort-btn:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.sort-btn.on {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.sort-arrow {
+  opacity: 0;
+  transition: transform 0.15s, opacity 0.15s;
+}
+
+.sort-btn:hover .sort-arrow,
+.sort-btn.on .sort-arrow {
+  opacity: 1;
 }
 
 .rows {
@@ -1276,11 +1318,20 @@ kbd {
   .hide-sm {
     display: none;
   }
-  .list-tools {
-    grid-template-columns: 1fr;
+  .list-head {
+    display: flex;
+    gap: 14px;
+    padding: 0 14px 6px;
   }
-  .list-cols {
+  .list-head .col-n {
     display: none;
+  }
+  .list-head .col-date {
+    display: block;
+  }
+  .list-head .col-size .sort-btn,
+  .sort-btn {
+    margin: 0;
   }
   .row {
     grid-template-columns: 34px 1fr auto;
