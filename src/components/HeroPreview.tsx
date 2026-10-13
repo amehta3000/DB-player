@@ -6,13 +6,20 @@ import { FolderIcon, Logo, NextIcon, PauseIcon, PrevIcon, RepeatIcon, ShuffleIco
 // An animated, self-playing mock of the player for the home page: the address bar swaps
 // www.dropbox.com for this host, then the folder opens as a playlist and plays through.
 
+// `daysAgo` keeps the Modified column looking fresh: dates are relative to today.
 const TRACKS = [
-  { name: '115 - PartTimeChiller - House Bass Trax 1.m4a', date: 'Apr 25', size: '3.8 MB', len: 214 },
-  { name: '100 - PartTimeChiller - Piano Overlord - 201601.mp3', date: 'Apr 25', size: '6.7 MB', len: 263 },
-  { name: '130 - PartTimeChiller - Nice heat Doyo - 20190420.m4a', date: 'May 17, 2025', size: '1.3 MB', len: 98 },
-  { name: '160 - PartTimeChiller - Bonsall pt2 - 20200729.m4a', date: 'May 16, 2025', size: '2.0 MB', len: 151 },
-  { name: '140 - PartTimeChiller - Beat Down ii - 20190810.m4a', date: 'Feb 16, 2023', size: '2.0 MB', len: 147 },
+  { name: '115 - PartTimeChiller - House Bass Trax 1.m4a', daysAgo: 1, size: '3.8 MB', len: 214 },
+  { name: '100 - PartTimeChiller - Piano Overlord - 201601.mp3', daysAgo: 3, size: '6.7 MB', len: 263 },
+  { name: '130 - PartTimeChiller - Nice heat Doyo - 20190420.m4a', daysAgo: 9, size: '1.3 MB', len: 98 },
+  { name: '160 - PartTimeChiller - Bonsall pt2 - 20200729.m4a', daysAgo: 16, size: '2.0 MB', len: 151 },
+  { name: '140 - PartTimeChiller - Beat Down ii - 20190810.m4a', daysAgo: 27, size: '2.0 MB', len: 147 },
 ];
+
+function recentDate(daysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
 const PATH = '/scl/fo/l5541091cnbeiurzrefmz/AIkY6ecnajmAN9cZxAHxHmo?rlkey=28c9ned5qt22pvxdmpaksbgm2';
 const CANVAS_W = 960;
 const TRACK_MS = 3600;
@@ -162,7 +169,7 @@ export function HeroPreview() {
                     <span className="pv-tname">{title(t.name)}</span>
                     <span className="badge">{ext(t.name)}</span>
                   </span>
-                  <span className="pv-dim">{t.date}</span>
+                  <span className="pv-dim">{recentDate(t.daysAgo)}</span>
                   <span className="pv-dim pv-size">{t.size}</span>
                 </div>
               );
