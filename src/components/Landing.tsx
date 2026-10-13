@@ -58,11 +58,21 @@ export function Landing({ onOpen }: { onOpen(url: string): void }) {
         <article className="tip">
           <span className="tip-n">1</span>
           <h3>Swap the domain</h3>
-          <p>Change the host of any shared link and it opens here.</p>
-          <code className="swap">
-            <s>www.dropbox.com</s>
-            <b>{host}</b>/scl/fo/…
-          </code>
+          <p>
+            In any Dropbox shared link, replace <b className="hl-old">www.dropbox.com</b> with <b className="hl-new">{host}</b>. Keep the rest of the
+            link the same.
+          </p>
+          <div className="swap" aria-hidden="true">
+            <span className="swap-label">Dropbox link</span>
+            <code className="swap-line">
+              https://<mark className="old">www.dropbox.com</mark>/scl/fo/…
+            </code>
+            <span className="swap-arrow">↓</span>
+            <span className="swap-label">Player link</span>
+            <code className="swap-line">
+              https://<mark className="new">{host}</mark>/scl/fo/…
+            </code>
+          </div>
         </article>
         <article className="tip">
           <span className="tip-n">2</span>

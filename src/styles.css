@@ -391,24 +391,64 @@ kbd {
   font-size: 13px;
 }
 
-.swap {
-  display: block;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: var(--bg);
-  font: 500 13px ui-monospace, 'SF Mono', Menlo, monospace;
-  overflow-wrap: anywhere;
+.hl-old {
+  color: var(--coral);
+  font-weight: 600;
 }
 
-.swap s {
-  color: var(--muted);
-  text-decoration-color: var(--coral);
-  text-decoration-thickness: 2px;
-  margin-right: 6px;
-}
-
-.swap b {
+.hl-new {
   color: var(--blue-ink);
+  font-weight: 600;
+}
+
+.swap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.swap-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.swap-line {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink-2);
+  font: 500 12.5px/1.6 ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+.swap-line mark {
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.swap-line .old {
+  background: color-mix(in srgb, var(--coral) 14%, transparent);
+  color: var(--coral);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.swap-line .new {
+  background: var(--blue-tint);
+  color: var(--blue-ink);
+}
+
+.swap-arrow {
+  margin: 2px 0 0 2px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
 }
 
 .bookmarklet {
