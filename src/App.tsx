@@ -267,7 +267,14 @@ export default function App() {
 
       {!player.current && (
         <footer className="site-foot">
-          DB Player is an independent tool and isn’t affiliated with or endorsed by Dropbox, Inc. Files stream from Dropbox to your browser.
+          DB Player is an independent tool and isn’t affiliated with or endorsed by Dropbox, Inc. Files stream from Dropbox to your browser.{' '}
+          <span className="credit">
+            A{' '}
+            <a href="https://superfresh.la" target="_blank" rel="noopener">
+              Superfresh
+            </a>{' '}
+            app.
+          </span>
         </footer>
       )}
 

@@ -481,6 +481,24 @@ kbd {
   font-size: 12.5px;
 }
 
+.credit {
+  white-space: nowrap;
+}
+
+.credit a {
+  color: var(--ink-2);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 3px;
+  transition: color 0.15s, text-decoration-color 0.15s;
+}
+
+.credit a:hover {
+  color: var(--blue-ink);
+  text-decoration-color: currentColor;
+}
+
 /* ---------- connect gate ---------- */
 
 .gate,
