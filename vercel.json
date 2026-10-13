@@ -13,6 +13,6 @@
       ],
       "destination": "/api/share"
     },
-    { "source": "/((?!api/|assets/|favicon\\.svg|og\\.png).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|assets/|_vercel/|favicon\\.svg|og\\.png).*)", "destination": "/index.html" }
   ]
 }
