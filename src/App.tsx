@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ConnectGate } from './components/ConnectGate';
 import { FolderView, type Resume } from './components/FolderView';
 import { Landing } from './components/Landing';
-import { Logo } from './components/Icons';
+import { ListIcon, Logo } from './components/Icons';
 import { PlayerBar } from './components/PlayerBar';
 import { Shortcuts } from './components/Shortcuts';
 import { completeConnect, disconnect, isConnected } from './lib/auth';
@@ -10,6 +10,7 @@ import type { Listing, Track } from './lib/dropboxApi';
 import { linkFromLocation, playerUrlFor, type SharedLink } from './lib/link';
 import { connectedSource, demoSource, guestAvailable, guestSource, singleFileListing, type Source } from './lib/sources';
 import { usePlayer } from './lib/usePlayer';
+import { forgetFolder, readRecent, rememberFolder, type RecentFolder } from './lib/recent';
 
 const DEMO_LINK: SharedLink = { url: 'https://www.dropbox.com/scl/fo/demo', kind: 'folder' };
 
@@ -42,6 +43,9 @@ export default function App() {
   const [source, setSource] = useState<Source | null>(null);
   const [listing, setListing] = useState<Listing | null>(null);
   const [rootName, setRootName] = useState('');
+  // Where the current queue was started, so there's always a way back to it.
+  const [playingFrom, setPlayingFrom] = useState<{ href: string; name: string; linkUrl: string } | null>(null);
+  const [recent, setRecent] = useState<RecentFolder[]>(readRecent);
   const [listError, setListError] = useState<string | null>(null);
   const [listLoading, setListLoading] = useState(false);
   const [showKeys, setShowKeys] = useState(false);
@@ -103,6 +107,10 @@ export default function App() {
         listCache.current.set(key, l);
         setListing(l);
         setRootName(l.name);
+        if (!snapshot().demo) {
+          rememberFolder({ href: playerUrlFor(link, ''), name: l.name, linkUrl: link.url });
+          setRecent(readRecent());
+        }
       })
       .catch((e) => alive && !cached && setListError(e instanceof Error ? e.message : 'Something went wrong'))
       .finally(() => alive && setListLoading(false));
@@ -120,20 +128,32 @@ export default function App() {
   const resume = useMemo(() => (link && booted ? readResume(link) : null), [link, booted]);
   const saveTick = Math.floor(player.time / 5);
   useEffect(() => {
-    if (!link || !player.current || demo) return;
+    if (!playingFrom || !player.current || playingFrom.linkUrl === DEMO_LINK.url) return;
     try {
-      localStorage.setItem(resumeKey(link), JSON.stringify({ track: player.current, time: player.time } satisfies Resume));
+      localStorage.setItem(resumeKey({ url: playingFrom.linkUrl, kind: 'folder' }), JSON.stringify({ track: player.current, time: player.time } satisfies Resume));
     } catch {
       /* ignore */
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player.current, saveTick]);
 
-  const { playQueue, toggle } = player;
+  const { playQueue: rawPlayQueue, toggle } = player;
+  const playQueue = useCallback(
+    (tracks: Track[], index: number, startAt?: number, shuffle?: boolean) => {
+      if (link) {
+        const name = path ? path.split('/').pop()! : rootName;
+        setPlayingFrom({ href: location.pathname + location.search, name, linkUrl: link.url });
+      }
+      rawPlayQueue(tracks, index, startAt, shuffle);
+    },
+    [rawPlayQueue, link, path, rootName],
+  );
   const onPlay = useCallback(
     (tracks: Track[], index: number, opts?: { shuffle?: boolean; startAt?: number }) => playQueue(tracks, index, opts?.startAt, opts?.shuffle),
     [playQueue],
   );
+  const backToPlaylist = useCallback(() => playingFrom && navigate(playingFrom.href), [navigate, playingFrom]);
+  const awayFromPlaylist = Boolean(player.current && playingFrom && location.pathname + location.search !== playingFrom.href);
 
   const onResume = useCallback(() => {
     if (!resume) return;
@@ -207,7 +227,15 @@ export default function App() {
   }, []);
 
   let body;
-  if (!link) body = <Landing onOpen={(url) => navigate(url)} />;
+  if (!link)
+    body = (
+      <Landing
+        onOpen={(url) => navigate(url)}
+        recent={recent}
+        onForget={(url) => setRecent(forgetFolder(url))}
+        nowPlaying={player.current && playingFrom ? { folder: playingFrom.name, track: player.current.name, onBack: backToPlaylist } : null}
+      />
+    );
   else if (!booted) body = <main className="boot" aria-busy="true" />;
   else if (!effectiveSource) body = <ConnectGate dropboxUrl={link.url} />;
   else
@@ -246,6 +274,23 @@ export default function App() {
           <span>DB Player</span>
         </a>
         <div className="topbar-right">
+          {awayFromPlaylist && playingFrom && (
+            <button className="chip back-chip" onClick={backToPlaylist} title={`Back to ${playingFrom.name}`}>
+              {player.playing ? (
+                <span className="eq" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              ) : (
+                <ListIcon size={16} />
+              )}
+              <span className="back-label">
+                Back to <b>{playingFrom.name}</b>
+              </span>
+              <span className="back-short">Playlist</span>
+            </button>
+          )}
           {source?.mode === 'demo' && <span className="chip">Demo</span>}
           {source?.mode === 'guest' && <span className="chip">Guest mode</span>}
           {source?.mode === 'connected' && (
@@ -257,7 +302,7 @@ export default function App() {
                 location.reload();
               }}
             >
-              <span className="dot" /> Dropbox connected
+              <span className="dot" /> <span className="connected-label">Dropbox connected</span>
             </button>
           )}
         </div>
@@ -278,7 +323,12 @@ export default function App() {
         </footer>
       )}
 
-      <PlayerBar player={player} folderName={rootName} onShowShortcuts={() => setShowKeys(true)} />
+      <PlayerBar
+        player={player}
+        folderName={playingFrom?.name ?? rootName}
+        onOpenPlaylist={awayFromPlaylist ? backToPlaylist : undefined}
+        onShowShortcuts={() => setShowKeys(true)}
+      />
       {showKeys && <Shortcuts onClose={() => setShowKeys(false)} />}
     </div>
   );

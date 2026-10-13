@@ -7,6 +7,7 @@ import {
   ChevronDownIcon,
   Fwd10Icon,
   KeyboardIcon,
+  ListIcon,
   NextIcon,
   PauseIcon,
   PlayIcon,
@@ -20,6 +21,8 @@ import { Scrubber } from './Scrubber';
 interface Props {
   player: Player;
   folderName: string;
+  /** Set when the queue's folder isn't the page being shown. */
+  onOpenPlaylist?(): void;
   onShowShortcuts(): void;
 }
 
@@ -64,7 +67,7 @@ function Transport({ p, big = false }: { p: Player; big?: boolean }) {
   );
 }
 
-export function PlayerBar({ player: p, folderName, onShowShortcuts }: Props) {
+export function PlayerBar({ player: p, folderName, onOpenPlaylist, onShowShortcuts }: Props) {
   const [expanded, setExpanded] = useState(false);
   useEffect(() => {
     if (!expanded) return;
@@ -82,7 +85,16 @@ export function PlayerBar({ player: p, folderName, onShowShortcuts }: Props) {
     <>
       <footer className="playerbar" aria-label="Player">
         <div className="mini-progress" style={{ width: `${p.duration ? (p.time / p.duration) * 100 : (p.loadProgress ?? 0) * 100}%` }} />
-        <button className="now" onClick={() => setExpanded(true)} aria-label="Open now playing">
+        <button
+          className={`now${onOpenPlaylist ? ' linkable' : ''}`}
+          onClick={() => {
+            // Phones open the full-screen player; on desktop the track info leads back to its playlist.
+            if (matchMedia('(max-width: 760px)').matches) setExpanded(true);
+            else onOpenPlaylist?.();
+          }}
+          aria-label={onOpenPlaylist ? 'Go to playlist' : 'Open now playing'}
+          title={onOpenPlaylist ? `Back to ${folderName}` : undefined}
+        >
           <Cover name={t.name} size={48} playing={p.playing} />
           <span className="now-text">
             <span className="now-title" title={t.name}>
@@ -134,7 +146,21 @@ export function PlayerBar({ player: p, folderName, onShowShortcuts }: Props) {
               <ChevronDownIcon size={26} />
             </button>
             <span className="sheet-folder">{folderName}</span>
-            <span style={{ width: 40 }} />
+            {onOpenPlaylist ? (
+              <button
+                className="icon-btn"
+                onClick={() => {
+                  setExpanded(false);
+                  onOpenPlaylist();
+                }}
+                aria-label="Go to playlist"
+                title="Go to playlist"
+              >
+                <ListIcon size={24} />
+              </button>
+            ) : (
+              <span style={{ width: 40 }} />
+            )}
           </div>
           <div className="sheet-art">
             <Cover name={t.name} size={320} playing={p.playing} />

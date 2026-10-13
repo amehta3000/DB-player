@@ -136,3 +136,15 @@ export function Logo({ size = 28 }: { size?: number }) {
     </svg>
   );
 }
+
+export const ListIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 6h11M4 12h11M4 18h7" />
+    <path d="M17 13.5v6.2a1.8 1.8 0 1 1-1.2-1.7V12l4.2-1v2.2Z" fill="currentColor" stroke="none" />
+  </Svg>
+);
+export const CloseIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="m6 6 12 12M18 6 6 18" />
+  </Svg>
+);

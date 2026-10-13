@@ -159,6 +159,174 @@ kbd {
   box-shadow: inset 0 0 0 1px var(--line);
 }
 
+.back-chip {
+  background: var(--blue-tint);
+  color: var(--blue-ink);
+  max-width: 340px;
+}
+
+.back-chip:hover {
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+
+.back-chip .eq {
+  height: 12px;
+}
+
+.back-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.back-short {
+  display: none;
+}
+
+.now.linkable {
+  cursor: pointer;
+}
+
+.now.linkable:hover {
+  background: var(--hover);
+}
+
+.now.linkable:hover .now-title {
+  color: var(--blue-ink);
+}
+
+.recent {
+  max-width: 680px;
+  margin-top: 28px;
+}
+
+.now-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--blue-tint);
+  text-align: left;
+  transition: box-shadow 0.15s;
+}
+
+.now-card:hover {
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+
+.now-card-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.now-card-label {
+  color: var(--blue-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.now-card-track {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.now-card-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--blue-ink);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.recent-title {
+  margin: 0 0 8px 2px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.recent-list {
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.recent-list li {
+  position: relative;
+}
+
+.recent-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 44px 10px 12px;
+  border-radius: 8px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.recent-item:hover {
+  background: var(--hover);
+}
+
+.recent-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.recent-when {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.recent-x {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--muted);
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.recent-list li:hover .recent-x,
+.recent-x:focus-visible {
+  opacity: 1;
+}
+
+.recent-x:hover {
+  background: var(--chip);
+  color: var(--ink);
+}
+
+@media (hover: none) {
+  .recent-x {
+    opacity: 1;
+  }
+}
+
 .dot {
   width: 7px;
   height: 7px;
@@ -1721,6 +1889,18 @@ kbd {
   .topbar {
     height: 56px;
     padding: 0 16px;
+  }
+  .back-label {
+    display: none;
+  }
+  .connected-label {
+    display: none;
+  }
+  .back-short {
+    display: inline;
+  }
+  .now-card-go {
+    display: none;
   }
   .landing {
     padding: 44px 16px 32px;

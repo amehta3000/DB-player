@@ -1,9 +1,18 @@
 import { useState, type FormEvent } from 'react';
+import { trackTitle } from '../lib/format';
 import { parseSharedLink, playerUrlFor } from '../lib/link';
+import { timeAgo, type RecentFolder } from '../lib/recent';
 import { HeroPreview } from './HeroPreview';
-import { KeyboardIcon, PlayIcon } from './Icons';
+import { ChevronIcon, CloseIcon, FolderIcon, KeyboardIcon, PlayIcon } from './Icons';
 
-export function Landing({ onOpen }: { onOpen(url: string): void }) {
+interface Props {
+  onOpen(url: string): void;
+  recent: RecentFolder[];
+  onForget(linkUrl: string): void;
+  nowPlaying: { folder: string; track: string; onBack(): void } | null;
+}
+
+export function Landing({ onOpen, recent, onForget, nowPlaying }: Props) {
   const [value, setValue] = useState('');
   const [error, setError] = useState('');
   const host = location.host;
@@ -53,6 +62,53 @@ export function Landing({ onOpen }: { onOpen(url: string): void }) {
         {error ? <p className="form-error">{error}</p> : <p className="hint">
           No link handy? <a href="/?demo">Try the demo folder</a>.
         </p>}
+
+        {(nowPlaying || recent.length > 0) && (
+          <div className="recent">
+            {nowPlaying && (
+              <button className="now-card" onClick={nowPlaying.onBack}>
+                <span className="eq" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span className="now-card-text">
+                  <span className="now-card-label">Now playing · {nowPlaying.folder}</span>
+                  <span className="now-card-track">{trackTitle(nowPlaying.track)}</span>
+                </span>
+                <span className="now-card-go">
+                  Back to playlist <ChevronIcon size={16} />
+                </span>
+              </button>
+            )}
+            {recent.length > 0 && (
+              <>
+                <h2 className="recent-title">Recent folders</h2>
+                <ul className="recent-list">
+                  {recent.map((r) => (
+                    <li key={r.linkUrl}>
+                      <a
+                        className="recent-item"
+                        href={r.href}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onOpen(r.href);
+                        }}
+                      >
+                        <FolderIcon size={22} className="folder-glyph" />
+                        <span className="recent-name">{r.name}</span>
+                        <span className="recent-when">{timeAgo(r.at)}</span>
+                      </a>
+                      <button className="recent-x" onClick={() => onForget(r.linkUrl)} aria-label={`Remove ${r.name} from recent folders`} title="Remove">
+                        <CloseIcon size={14} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="preview">
