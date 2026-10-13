@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { parseSharedLink, playerUrlFor } from '../lib/link';
+import { HeroPreview } from './HeroPreview';
 import { KeyboardIcon, PlayIcon } from './Icons';
 
 export function Landing({ onOpen }: { onOpen(url: string): void }) {
@@ -52,6 +53,10 @@ export function Landing({ onOpen }: { onOpen(url: string): void }) {
         {error ? <p className="form-error">{error}</p> : <p className="hint">
           No link handy? <a href="/?demo">Try the demo folder</a>.
         </p>}
+      </section>
+
+      <section className="preview">
+        <HeroPreview />
       </section>
 
       <section className="tips">
