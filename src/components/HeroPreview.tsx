@@ -8,11 +8,11 @@ import { FolderIcon, Logo, NextIcon, PauseIcon, PrevIcon, RepeatIcon, ShuffleIco
 
 // `daysAgo` keeps the Modified column looking fresh: dates are relative to today.
 const TRACKS = [
-  { name: '115 - PartTimeChiller - House Bass Trax 1.m4a', daysAgo: 1, size: '3.8 MB', len: 214 },
-  { name: '100 - PartTimeChiller - Piano Overlord - 201601.mp3', daysAgo: 3, size: '6.7 MB', len: 263 },
-  { name: '130 - PartTimeChiller - Nice heat Doyo - 20190420.m4a', daysAgo: 9, size: '1.3 MB', len: 98 },
-  { name: '160 - PartTimeChiller - Bonsall pt2 - 20200729.m4a', daysAgo: 16, size: '2.0 MB', len: 151 },
-  { name: '140 - PartTimeChiller - Beat Down ii - 20190810.m4a', daysAgo: 27, size: '2.0 MB', len: 147 },
+  { name: '115 - House Bass Trax v2.m4a', daysAgo: 1, size: '3.8 MB', len: 214 },
+  { name: '100 - Piano Overlord FINAL.mp3', daysAgo: 3, size: '6.7 MB', len: 263 },
+  { name: '130 - Nice Heat Doyo v1a.m4a', daysAgo: 9, size: '1.3 MB', len: 98 },
+  { name: '160 - Bonsall pt2 FINAL FINAL.m4a', daysAgo: 16, size: '2.0 MB', len: 151 },
+  { name: '140 - Beat Down ii v3 (master).m4a', daysAgo: 27, size: '2.0 MB', len: 147 },
 ];
 
 function recentDate(daysAgo: number): string {
