@@ -18,6 +18,14 @@ function shuffled(n: number, first: number): number[] {
   return first >= 0 ? [first, ...rest] : rest;
 }
 
+/** Queue position after `pos`, or null at the end of the queue (when not repeating). */
+export function nextPos(length: number, pos: number, repeat: Repeat, fromEnded: boolean): number | null {
+  if (!length) return null;
+  const p = pos + 1;
+  if (p < length) return p;
+  return repeat === 'all' || !fromEnded ? 0 : null;
+}
+
 function readVolume(): number {
   try {
     const v = Number(localStorage.getItem(VOLUME_KEY));
@@ -106,12 +114,13 @@ export function usePlayer(source: Source | null, link: SharedLink | null, albumN
 
   /** Download the whole file (converting AIFF if needed) and return a blob URL. */
   const blobUrlFor = useCallback(
-    async (track: Track, mySeq: number): Promise<string> => {
+    async (track: Track, mySeq: number | null): Promise<string> => {
       const cached = blobUrls.current.get(track.id);
       if (cached) return cached;
       const { source, link } = ctx.current;
-      setLoadProgress(0);
-      let blob = await source!.download(link!, track, (p) => mySeq === seq.current && setLoadProgress(p));
+      // mySeq null = background prefetch for the next track: no progress shown.
+      if (mySeq != null) setLoadProgress(0);
+      let blob = await source!.download(link!, track, (p) => mySeq != null && mySeq === seq.current && setLoadProgress(p));
       if (isAiff(track.name) && !playsAiff) {
         blob = new Blob([aiffToWav(await blob.arrayBuffer())], { type: 'audio/wav' });
       }
@@ -161,11 +170,76 @@ export function usePlayer(source: Source | null, link: SharedLink | null, albumN
     [audio, blobUrlFor, playsAiff],
   );
 
+  // Next-track hand-off. Mobile browsers freeze a locked or backgrounded page's timers as
+  // soon as audio stops, so anything async after `ended` (React effects, fetching a URL)
+  // may never run. The next track's URL is resolved ahead of time and swapped in
+  // synchronously inside the `ended` handler, keeping audio going without a gap.
+  const prepared = useRef<{ id: string; url: string; at: number } | null>(null);
+  const preparing = useRef<string | null>(null);
+  const handedOff = useRef<string | null>(null);
+  const live = useRef({ order, pos, queue, repeat });
+  live.current = { order, pos, queue, repeat };
+
+  const prepareNext = useCallback(async () => {
+    const { order, pos, queue, repeat } = live.current;
+    const p = nextPos(order.length, pos, repeat, true);
+    if (p == null || p === pos) return;
+    const track = queue[order[p]];
+    if (!track || preparing.current === track.id) return;
+    const ready = prepared.current;
+    // Stream URLs embed an access token; refresh one that's been sitting a while.
+    if (ready?.id === track.id && (ready.url.startsWith('blob:') || Date.now() - ready.at < 5 * 60_000)) return;
+    const { source, link } = ctx.current;
+    if (!source || !link) return;
+    preparing.current = track.id;
+    try {
+      const url =
+        blobUrls.current.get(track.id) ??
+        (isAiff(track.name) && !playsAiff ? await blobUrlFor(track, null) : await source.streamUrl(link, track));
+      prepared.current = { id: track.id, url, at: Date.now() };
+    } catch {
+      /* fall back to a normal load when the track comes up */
+    } finally {
+      preparing.current = null;
+    }
+  }, [blobUrlFor, playsAiff]);
+  const prepareRef = useRef(prepareNext);
+  prepareRef.current = prepareNext;
+
+  /** Start queue position p right now if its URL is ready. Returns false if it isn't. */
+  const handOff = useCallback(
+    (p: number): boolean => {
+      const { order, queue } = live.current;
+      const track = queue[order[p]];
+      const ready = prepared.current;
+      if (!track || !ready || ready.id !== track.id) return false;
+      prepared.current = null;
+      ++seq.current;
+      fellBack.current = ready.url.startsWith('blob:');
+      pendingSeek.current = null;
+      audio.src = ready.url;
+      audio.play().catch(() => {});
+      handedOff.current = track.id;
+      setTime(0);
+      setDuration(0);
+      setBuffered(0);
+      setError(null);
+      setLoadProgress(null);
+      setStatus('loading');
+      setPos(p);
+      return true;
+    },
+    [audio],
+  );
+
   // Load whenever the current track changes.
   const startAtRef = useRef(0);
   const autoplayRef = useRef(true);
   useEffect(() => {
-    if (current) load(current, autoplayRef.current, startAtRef.current);
+    if (current && handedOff.current === current.id) {
+      // `ended` already started this track; don't interrupt it.
+      handedOff.current = null;
+    } else if (current) load(current, autoplayRef.current, startAtRef.current);
     startAtRef.current = 0;
     autoplayRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -192,7 +266,10 @@ export function usePlayer(source: Source | null, link: SharedLink | null, albumN
     [audio, order.length, pos, repeat],
   );
 
-  const next = useCallback(() => advance(1), [advance]);
+  const next = useCallback(() => {
+    const p = nextPos(order.length, pos, repeat, false);
+    if (p == null || p === pos || !handOff(p)) advance(1);
+  }, [advance, handOff, order.length, pos, repeat]);
   const prev = useCallback(() => {
     if (audio.currentTime > 3) audio.currentTime = 0;
     else advance(-1);
@@ -204,7 +281,10 @@ export function usePlayer(source: Source | null, link: SharedLink | null, albumN
     if (repeat === 'one') {
       audio.currentTime = 0;
       audio.play().catch(() => {});
-    } else advance(1, true);
+      return;
+    }
+    const p = nextPos(order.length, pos, repeat, true);
+    if (p == null || p === pos || !handOff(p)) advance(1, true);
   };
   useEffect(() => {
     const updateBuffered = () => {
@@ -214,10 +294,20 @@ export function usePlayer(source: Source | null, link: SharedLink | null, albumN
     const handlers: Record<string, () => void> = {
       play: () => setPlaying(true),
       pause: () => setPlaying(false),
-      playing: () => setStatus('ready'),
+      playing: () => {
+        setStatus('ready');
+        // Whole-file downloads (AIFF) take a while, so start those early.
+        const { order, pos, queue, repeat } = live.current;
+        const p = nextPos(order.length, pos, repeat, true);
+        const nextTrack = p == null ? null : queue[order[p]];
+        if (nextTrack && isAiff(nextTrack.name)) prepareRef.current();
+      },
       canplay: () => setStatus((s) => (s === 'loading' ? 'ready' : s)),
       waiting: () => setStatus('loading'),
-      timeupdate: () => setTime(audio.currentTime),
+      timeupdate: () => {
+        setTime(audio.currentTime);
+        if (Number.isFinite(audio.duration) && audio.duration - audio.currentTime < 30) prepareRef.current();
+      },
       durationchange: () => setDuration(Number.isFinite(audio.duration) ? audio.duration : 0),
       loadedmetadata: () => {
         setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
